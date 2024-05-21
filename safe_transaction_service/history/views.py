@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import pickle
+import requests
 from typing import Any, Dict, Optional, Tuple
 
 from django.conf import settings
@@ -809,6 +810,68 @@ class SafeMultisigTransactionListView(ListAPIView):
                     "arguments": [address],
                 },
             )
+
+        try:
+            # Print all headers for debugging
+            print("Webhook_url Print all headers for debugging")
+            for header, value in request.META.items():
+                print(f"[REQUEST_HEADER]:{header}: {value}")
+
+            # Retrieve IP address
+            client_ip = request.META.get('HTTP_X_FORWARDED_FOR', None)
+
+            if client_ip:
+                # Split the header value by comma and remove any leading/trailing whitespace from each IP
+                ips = [ip.strip() for ip in client_ip.split(',')]
+                # Remove any spaces within each IP address
+                ips = [ip.replace(' ', '') for ip in ips]
+                # Store the first IP address in client_ip
+                client_ip = ips[0]
+                # Now client_ip contains the first real IP address without spaces
+            else:
+                # Handle the case where the header is not present
+                client_ip = None
+
+            if not client_ip:
+                client_ip = request.META.get('HTTP_X_REAL_IP', None)
+
+            print("[REQUEST_DATA]: ", request.data)
+
+            ethereum_chain_id = get_chain_id()
+
+            # Construct the payload
+            payload = {
+                "address": address,
+                "type": "NEW_CONFIRMATION",
+                "owner": request.data.get('sender'),
+                "clientIpAddress": client_ip,
+                "safeTxHash": request.data.get('contract_transaction_hash'),
+                "chainId": ethereum_chain_id
+            }
+
+            print("[CONSTRUCTED_PAYLOAD]: ", payload)
+
+            # Get the webhook URL from the environment variables
+            webhook_url = settings.WEBHOOK_URL
+
+            print("[ENV_WEBHOOK_URL]: ", webhook_url)
+
+            # Send the POST request
+            response = requests.post(
+                webhook_url,
+                json=payload
+            )
+
+            # Print the response for debugging
+            print("[RESPONSE_STATUS]:", response.status_code)
+            print("[RESPONSE_BODY]:", response.json())
+
+        except requests.exceptions.RequestException as e:
+            # Handle any errors that occur during the request
+            print(f"[ERROR]: {e}")
+        except Exception as e:
+            # Handle any other exceptions that may occur
+            print(f"[UNEXPECTED_ERROR]: {e}")
 
         request.data["safe"] = address
         serializer = self.get_serializer(data=request.data)

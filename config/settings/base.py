@@ -438,6 +438,10 @@ REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
 # ------------------------------------------------------------------------------
 ETHEREUM_NODE_URL = env("ETHEREUM_NODE_URL", default=None)
 
+# WEBHOOK
+# ------------------------------------------------------------------------------
+WEBHOOK_URL = env("WEBHOOK_URL", default=None)
+
 # Ethereum 4337 Bundler RPC
 # ------------------------------------------------------------------------------
 ETHEREUM_4337_BUNDLER_URL = env("ETHEREUM_4337_BUNDLER_URL", default=None)
